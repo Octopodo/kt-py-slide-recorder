@@ -68,6 +68,37 @@ class StorageService:
             self._autosave_timer.cancel()
             self._autosave_timer = None
 
+    def finalize_session(self) -> None:
+        """
+        Stop the autosave timer, flush the final snapshot to the primary path,
+        and delete the autosave file.
+
+        Call this when a recording ends so the primary file contains all events
+        and no stale autosave file is left behind.
+        Safe to call if autosave was not running.
+        """
+        self.stop_autosave()
+
+        if self._save_path and self._session_getter:
+            session = self._session_getter()
+            if session:
+                try:
+                    payload = self._serialize(session)
+                    with self._write_lock:
+                        with open(self._save_path, "w", encoding="utf-8") as fh:
+                            json.dump(payload, fh, indent=2, ensure_ascii=False)
+                except OSError:
+                    pass  # Best-effort; keep going to attempt autosave cleanup
+
+            autosave = self._autosave_path()
+            try:
+                if os.path.exists(autosave):
+                    os.remove(autosave)
+            except OSError:
+                pass
+
+        self._session_getter = None
+
     def _schedule_next(self) -> None:
         self._autosave_timer = threading.Timer(
             self._autosave_interval_s, self._autosave_tick
@@ -97,6 +128,7 @@ class StorageService:
     @staticmethod
     def _serialize(session: Session) -> dict:
         return {
+            "title": session.title,
             "session_start_iso": session.start_iso,
             "duration_s": round(session.duration_s, 3),
             "total_events": len(session.events),

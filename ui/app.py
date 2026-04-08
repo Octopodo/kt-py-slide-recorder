@@ -130,11 +130,19 @@ class App(ctk.CTk):
 
         self._event_count = 0
         self._control_panel.reset_display()
-        self._recording_service.start()
+        self._recording_service.start(title=self._control_panel.title)
+
+        # Generate the initial JSON file as soon as recording begins
+        snapshot = self._recording_service.get_session_snapshot()
+        if snapshot:
+            try:
+                self._storage_service.save_session(snapshot, self._save_panel.save_path)
+            except OSError as exc:
+                messagebox.showerror("Initial save failed", str(exc))
 
     def _on_stop(self) -> None:
         self._recording_service.stop()
-        self._storage_service.stop_autosave()
+        self._storage_service.finalize_session()
 
     # ------------------------------------------------------------------ #
     # Callbacks from service threads — routed to main thread via after()  #

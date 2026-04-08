@@ -7,5 +7,6 @@ from models.slide_event import SlideEvent
 @dataclass
 class Session:
     start_iso: str
+    title: str = ""
     events: List[SlideEvent] = field(default_factory=list)
     duration_s: float = 0.0

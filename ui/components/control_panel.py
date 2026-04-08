@@ -28,6 +28,17 @@ class ControlPanel(ctk.CTkFrame):
             font=ctk.CTkFont(size=14, weight="bold"),
         ).grid(row=0, column=0, columnspan=2, padx=12, pady=(10, 6), sticky="w")
 
+        ctk.CTkLabel(self, text="Session title:").grid(
+            row=1, column=0, padx=(12, 4), pady=(0, 6), sticky="e"
+        )
+        self._title_var = ctk.StringVar(value="")
+        self._title_entry = ctk.CTkEntry(
+            self,
+            textvariable=self._title_var,
+            placeholder_text="Untitled session",
+        )
+        self._title_entry.grid(row=1, column=1, padx=(4, 12), pady=(0, 6), sticky="ew")
+
         self._toggle_btn = ctk.CTkButton(
             self,
             text="⏺  Record",
@@ -38,20 +49,20 @@ class ControlPanel(ctk.CTkFrame):
             hover_color="#a93226",
             command=self._toggle,
         )
-        self._toggle_btn.grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 10))
+        self._toggle_btn.grid(row=2, column=0, columnspan=2, padx=12, pady=(0, 10))
 
         ctk.CTkLabel(self, text="Elapsed:").grid(
-            row=2, column=0, padx=(12, 4), pady=4, sticky="e"
+            row=3, column=0, padx=(12, 4), pady=4, sticky="e"
         )
         self._elapsed_label = ctk.CTkLabel(
             self,
             text="00:00:00",
             font=ctk.CTkFont(size=22, family="Courier New"),
         )
-        self._elapsed_label.grid(row=2, column=1, padx=(4, 12), pady=4, sticky="w")
+        self._elapsed_label.grid(row=3, column=1, padx=(4, 12), pady=4, sticky="w")
 
         ctk.CTkLabel(self, text="Events:").grid(
-            row=3, column=0, padx=(12, 4), pady=(4, 10), sticky="e"
+            row=4, column=0, padx=(12, 4), pady=(4, 10), sticky="e"
         )
         self._counter_label = ctk.CTkLabel(
             self,
@@ -59,7 +70,7 @@ class ControlPanel(ctk.CTkFrame):
             font=ctk.CTkFont(size=22, family="Courier New"),
         )
         self._counter_label.grid(
-            row=3, column=1, padx=(4, 12), pady=(4, 10), sticky="w"
+            row=4, column=1, padx=(4, 12), pady=(4, 10), sticky="w"
         )
 
         self.columnconfigure(0, weight=1)
@@ -71,6 +82,10 @@ class ControlPanel(ctk.CTkFrame):
         else:
             self._on_record()
 
+    @property
+    def title(self) -> str:
+        return self._title_var.get().strip()
+
     def set_recording(self, recording: bool) -> None:
         self._is_recording = recording
         if recording:
@@ -79,12 +94,14 @@ class ControlPanel(ctk.CTkFrame):
                 fg_color="#27ae60",
                 hover_color="#1e8449",
             )
+            self._title_entry.configure(state="disabled")
         else:
             self._toggle_btn.configure(
                 text="⏺  Record",
                 fg_color="#c0392b",
                 hover_color="#a93226",
             )
+            self._title_entry.configure(state="normal")
 
     def update_elapsed(self, elapsed_s: float) -> None:
         h = int(elapsed_s // 3600)

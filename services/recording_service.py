@@ -43,14 +43,17 @@ class RecordingService:
         with self._lock:
             return self._state
 
-    def start(self) -> None:
+    def start(self, title: str = "") -> None:
         """Start a new recording session. Safe to call from IDLE or STOPPED."""
         with self._lock:
             if self._state == RecordingState.RECORDING:
                 return
             self._provider.reset()
             self._start_monotonic = time.monotonic()
-            self._session = Session(start_iso=datetime.now().astimezone().isoformat())
+            self._session = Session(
+                start_iso=datetime.now().astimezone().isoformat(),
+                title=title,
+            )
             self._state = RecordingState.RECORDING
 
         if self.on_state_change:
@@ -114,6 +117,7 @@ class RecordingService:
             )
             return Session(
                 start_iso=self._session.start_iso,
+                title=self._session.title,
                 events=list(self._session.events),
                 duration_s=round(duration, 3),
             )
