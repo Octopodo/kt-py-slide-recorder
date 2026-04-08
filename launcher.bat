@@ -2,32 +2,40 @@
 setlocal
 cd /d "%~dp0"
 
-:: ── Activate virtual environment if one exists ─────────────────────────
-if exist ".venv\Scripts\activate.bat" (
-    call .venv\Scripts\activate.bat
-)
-
-:: ── Ensure dependencies are installed ──────────────────────────────────
-python -c "import customtkinter, pynput" >nul 2>&1
-if errorlevel 1 (
-    echo Installing requirements...
-    python -m pip install -r requirements.txt
+:: ── 1. Create virtual environment if it does not exist ─────────────────
+if not exist ".venv\Scripts\activate.bat" (
+    echo Creating virtual environment...
+    python -m venv .venv
     if errorlevel 1 (
         echo.
-        echo [ERROR] Failed to install requirements. Make sure Python is in PATH.
+        echo [ERROR] Failed to create virtual environment. Make sure Python is in PATH.
         pause
         exit /b 1
     )
 )
 
-:: ── Launch without a console window ────────────────────────────────────
-:: pythonw.exe is the windowless Python interpreter on Windows.
-:: Fall back to python if pythonw is not available.
-where pythonw >nul 2>&1
+:: ── 2. Activate virtual environment ────────────────────────────────────
+call .venv\Scripts\activate.bat
+
+:: ── 3. Ensure dependencies are installed inside the venv ───────────────
+.venv\Scripts\python.exe -c "import customtkinter, pynput" >nul 2>&1
 if errorlevel 1 (
-    start "" python main.py
+    echo Installing requirements...
+    .venv\Scripts\pip.exe install -r requirements.txt
+    if errorlevel 1 (
+        echo.
+        echo [ERROR] Failed to install requirements.
+        pause
+        exit /b 1
+    )
+)
+
+:: ── 4. Launch without a console window ─────────────────────────────────
+:: Use pythonw from the venv for a windowless launch; fall back to python.
+if exist ".venv\Scripts\pythonw.exe" (
+    start "" .venv\Scripts\pythonw.exe main.py
 ) else (
-    start "" pythonw main.py
+    start "" .venv\Scripts\python.exe main.py
 )
 
 endlocal
