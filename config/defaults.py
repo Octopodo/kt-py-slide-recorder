@@ -1,0 +1,6 @@
+APP_TITLE: str = "Slide Recorder"
+APP_GEOMETRY: str = "480x560"
+
+DEFAULT_FORWARD_KEY: str = "right"
+DEFAULT_BACKWARD_KEY: str = "left"
+DEFAULT_AUTOSAVE_INTERVAL_S: int = 60
