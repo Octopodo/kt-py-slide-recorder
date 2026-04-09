@@ -18,7 +18,7 @@ if not exist ".venv\Scripts\activate.bat" (
 call .venv\Scripts\activate.bat
 
 :: ── 3. Ensure dependencies are installed inside the venv ───────────────
-.venv\Scripts\python.exe -c "import customtkinter, pynput" >nul 2>&1
+.venv\Scripts\python.exe -c "import customtkinter, pynput, obsws_python" >nul 2>&1
 if errorlevel 1 (
     echo Installing requirements...
     .venv\Scripts\pip.exe install -r requirements.txt

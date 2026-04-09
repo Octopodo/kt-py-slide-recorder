@@ -71,23 +71,18 @@ class RecordingService:
         if self.on_state_change:
             self.on_state_change(RecordingState.STOPPED)
 
-    def register_event(self, direction: str) -> None:
+    def register_slide_change(self, index: int) -> None:
         """
-        Record a slide navigation event. Called from the pynput thread.
-        direction must be "forward" or "backward".
+        Record a slide change event using the absolute slide index.
+        Safe to call from any thread (pynput, socket listener, etc.).
         """
         event: Optional[SlideEvent] = None
         with self._lock:
             if self._state != RecordingState.RECORDING or self._session is None:
                 return
-            if direction == "forward":
-                self._provider.on_forward()
-            else:
-                self._provider.on_backward()
             event = SlideEvent(
                 time_s=round(time.monotonic() - self._start_monotonic, 3),
-                direction=direction,
-                slide_index=self._provider.current_index,
+                slide_index=index,
             )
             self._session.events.append(event)
 

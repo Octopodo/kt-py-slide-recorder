@@ -1,0 +1,87 @@
+SLIDE RECORDER MACRO — INSTALLATION GUIDE
+==========================================
+
+Requirements
+------------
+- LibreOffice Impress 7.0 or newer
+- kt-py-slide-recorder must be running BEFORE starting the presentation
+
+Installation (one-time)
+-----------------------
+1. Copy slide_recorder_macro.py into the LibreOffice Python scripts folder:
+
+     Windows : %APPDATA%\LibreOffice\4\user\Scripts\python\
+               (paste this path into the Windows Explorer address bar)
+     macOS   : ~/Library/Application Support/LibreOffice/4/user/Scripts/python/
+     Linux   : ~/.config/libreoffice/4/user/Scripts/python/
+
+   Create the "python" folder if it doesn't exist.
+
+2. In LibreOffice: Tools → Options → LibreOffice → Security
+   → Macro Security → set to "Medium" → OK → restart LibreOffice.
+
+3. In LibreOffice Impress with a presentation open:
+     Tools → Macros → Organize Python Macros...
+   Select:  slide_recorder_macro  →  RegisterSlideRecorderListeners
+   Click Run (or Execute).
+
+   A confirmation will appear if the app is reachable, or a silent success
+   if it isn't (the macro silently ignores connection errors).
+
+   You only need to do this once per LibreOffice session.
+
+   ⚠ DO NOT use "Tools → Macros → Edit Macros" (the Basic IDE).
+     The Basic IDE is for LibreOffice Basic, a different language.
+     Python macros cannot be pasted or run there.
+
+Optional — Auto-run on startup
+-------------------------------
+To run RegisterSlideRecorderListeners automatically every time
+LibreOffice starts:
+
+1. Tools → Customize → Events tab
+2. Event: "Start Application"
+3. Click "Macro..." and select:
+   My Macros → slide_recorder_macro → RegisterSlideRecorderListeners
+4. Click OK
+
+Configuration
+-------------
+If you change the bridge port in kt-py-slide-recorder,
+update the matching constant at the top of slide_recorder_macro.py:
+
+    BRIDGE_PORT = 2765   <-- change this to match
+
+The host is always 127.0.0.1 (localhost) because Impress and the
+kt-py-slide-recorder app always run on the same machine.
+
+How it works
+------------
+- When you press F5 (Start Presentation), the macro sends:
+    {"v":1,"type":"slideshow_started","total":<N>}
+
+- On each slide transition, it sends:
+    {"v":1,"type":"slide_changed","index":<N>,"total":<M>}
+
+- When you press Escape (End Presentation), it sends:
+    {"v":1,"type":"slideshow_ended"}
+
+If kt-py-slide-recorder is not running, the macro silently ignores
+all connection errors — LibreOffice continues to work normally.
+
+Troubleshooting
+---------------
+- Only 3 macros appear in the browser (RegisterSlideRecorderListeners,
+  TestConnection, ShowLog): this is correct — internal helpers are hidden.
+
+- "Connection refused": kt-py-slide-recorder is not running.
+  Start the app before launching the presentation.
+
+- Slide index not updating: Make sure you ran RegisterSlideRecorderListeners
+  in the current LibreOffice session (it resets when LibreOffice restarts
+  unless you configured auto-run above).
+
+- Wrong port: Check BRIDGE_PORT in the macro matches the port in the app.
+
+- ShowLog: Run the ShowLog macro from the browser to display the last 40
+  lines of ~/Desktop/slide_recorder_debug.log for diagnostics.
