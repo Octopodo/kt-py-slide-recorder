@@ -8,7 +8,7 @@ using the Impress Bridge Protocol v1 (JSON Lines).
 INSTALLATION (one-time, manual):
 
   1. Copy THIS FILE (slide_recorder_macro.py) to the LibreOffice Python scripts folder:
-       Windows : %APPDATA%\LibreOffice\4\user\Scripts\python\
+       Windows : %APPDATA%/LibreOffice/4/user/Scripts/python/
        macOS   : ~/Library/Application Support/LibreOffice/4/user/Scripts/python/
        Linux   : ~/.config/libreoffice/4/user/Scripts/python/
 
@@ -25,10 +25,6 @@ INSTALLATION (one-time, manual):
        Macro... → My Macros → slide_recorder_macro → RegisterSlideRecorderListeners
        OK
 
-  NOTE: Python macros are NOT pasted into the Basic IDE.
-        The Basic IDE only accepts LibreOffice Basic (a different language).
-        Use "Tools → Macros → Organize Python Macros" instead.
-
 PROTOCOL:
   Host : localhost (127.0.0.1)
   Port : 2765  (must match BRIDGE_PORT in kt-py-slide-recorder config)
@@ -42,8 +38,8 @@ DEBUG:
 import json
 import os
 import socket
+import sys
 import threading
-import time
 from datetime import datetime
 
 import uno
@@ -55,23 +51,22 @@ BRIDGE_PORT = 2765
 PROTOCOL_VERSION = 1
 
 _LOG_PATH = os.path.join(os.path.expanduser("~"), "Desktop", "slide_recorder_debug.log")
-_connection = None
 
-# ── Poll singleton ────────────────────────────────────────────────────
-# There is at most ONE active poll thread at any time.
-# stop_evt is signalled to terminate the current thread cleanly.
-_poll_thread = None
-_poll_stop = threading.Event()
-_poll_lock = threading.Lock()
+# ── Persistent module-level state ──────────────────────────────────────
 
-# ── _on_start chain control ───────────────────────────────────────────
-# Each time we want to (re)attach, the sequence number is incremented.
-# Any running _on_start chain that sees a stale seq aborts itself.
-_on_start_seq = 0
-_on_start_seq_lock = threading.Lock()
+if not hasattr(sys, "_sliderecorder_globals"):
+    sys._sliderecorder_globals = {
+        "connection": None,
+        "poll_thread": None,
+        "poll_stop": threading.Event(),
+        "poll_lock": threading.Lock(),
+        "global_listener": None,
+    }
 
-# ── Listener singleton ────────────────────────────────────────────────
-_global_listener = None
+sg = sys._sliderecorder_globals
+
+
+# ── Logging ────────────────────────────────────────────────────────────
 
 
 def _log(msg):
@@ -80,6 +75,9 @@ def _log(msg):
             f.write(f"{datetime.now().strftime('%H:%M:%S.%f')[:-3]}  {msg}\n")
     except Exception:
         pass
+
+
+# ── TCP connection ─────────────────────────────────────────────────────
 
 
 class _BridgeConnection:
@@ -94,14 +92,11 @@ class _BridgeConnection:
         with self._lock:
             if self._sock is None:
                 if not self._connect():
-                    _log(f"send: connect failed for msg type={msg.get('type')}")
                     return False
             try:
                 self._sock.sendall(line.encode("utf-8"))
-                _log(f"send OK: {msg.get('type')}")
                 return True
-            except OSError as e:
-                _log(f"send OSError: {e}")
+            except OSError:
                 self._close()
                 return False
 
@@ -130,217 +125,321 @@ class _BridgeConnection:
 
 
 def _get_connection():
-    global _connection
-    if _connection is None:
-        _connection = _BridgeConnection(BRIDGE_HOST, BRIDGE_PORT)
-    return _connection
+    if sg["connection"] is None:
+        sg["connection"] = _BridgeConnection(BRIDGE_HOST, BRIDGE_PORT)
+    return sg["connection"]
 
 
 def _send(msg) -> bool:
     return _get_connection().send(msg)
 
 
-# ── Poll thread management ────────────────────────────────────────────
+# ── Poll thread ───────────────────────────────────────────────────────
+
 
 def _is_polling() -> bool:
-    with _poll_lock:
-        return _poll_thread is not None and _poll_thread.is_alive()
+    with sg["poll_lock"]:
+        return sg["poll_thread"] is not None and sg["poll_thread"].is_alive()
 
 
 def _start_poll(ctrl, doc) -> None:
-    global _poll_thread, _poll_stop
-    with _poll_lock:
-        _poll_stop.set()                          # stop any prior thread
-        _poll_stop = threading.Event()
-        stop = _poll_stop
-        _poll_thread = threading.Thread(
+    with sg["poll_lock"]:
+        sg["poll_stop"].set()
+        sg["poll_stop"] = threading.Event()
+        stop = sg["poll_stop"]
+        sg["poll_thread"] = threading.Thread(
             target=_poll_slides, args=(ctrl, doc, stop), daemon=True
         )
-        _poll_thread.start()
-    _log("_start_poll: new thread started")
+        sg["poll_thread"].start()
+    _log("_start_poll: thread started")
 
 
 def _stop_poll(reason: str = "") -> None:
-    with _poll_lock:
-        if _poll_thread is None or not _poll_thread.is_alive():
+    with sg["poll_lock"]:
+        if sg["poll_thread"] is None or not sg["poll_thread"].is_alive():
             return
         _log(f"_stop_poll: {reason}")
-        _poll_stop.set()
+        sg["poll_stop"].set()
 
 
-def _poll_slides(ctrl, doc, stop_evt: threading.Event) -> None:
-    """Poll getCurrentSlideIndex every 250 ms; send slide_changed on every change.
-    Re-sends slideshow_started if TCP reconnects mid-presentation.
-    Sends slideshow_ended when the thread exits (presentation over or stopped).
-    """
+def _poll_slides(ctrl, doc, stop_evt):
     last_idx = None
     was_disconnected = False
-    _log("_poll_slides: started")
+    errors = 0
     try:
         total = doc.DrawPages.Count
     except Exception:
         total = 0
     _send({"v": PROTOCOL_VERSION, "type": "slideshow_started", "total": total})
+    _log(f"_poll_slides: started, total={total}")
 
     while not stop_evt.is_set():
         try:
             idx = ctrl.getCurrentSlideIndex()
+            errors = 0
         except Exception as exc:
-            _log(f"_poll_slides: controller error: {exc} — stopping")
-            break
+            errors += 1
+            if errors >= 3:
+                _log(f"_poll_slides: controller dead ({exc}) — stopping")
+                break
+            stop_evt.wait(0.25)
+            continue
 
         if was_disconnected:
             try:
                 total = doc.DrawPages.Count
             except Exception:
-                total = 0
-            ok = _send({"v": PROTOCOL_VERSION, "type": "slideshow_started", "total": total})
+                pass
+            ok = _send(
+                {"v": PROTOCOL_VERSION, "type": "slideshow_started", "total": total}
+            )
             if ok:
                 was_disconnected = False
                 last_idx = idx
-                _log("_poll_slides: reconnected, re-sent slideshow_started")
-        else:
-            if last_idx is None:
-                last_idx = idx
-                _log(f"_poll_slides: initial slide {idx + 1}")
-            elif idx != last_idx:
-                try:
-                    total = doc.DrawPages.Count
-                except Exception:
-                    total = 0
-                ok = _send({
+        elif last_idx is None or idx != last_idx:
+            try:
+                total = doc.DrawPages.Count
+            except Exception:
+                pass
+            ok = _send(
+                {
                     "v": PROTOCOL_VERSION,
                     "type": "slide_changed",
                     "index": idx + 1,
                     "total": total,
-                })
-                if ok:
-                    last_idx = idx
-                    _log(f"_poll_slides: slide → {idx + 1}/{total}")
-                else:
-                    was_disconnected = True
+                }
+            )
+            if ok:
+                last_idx = idx
+                _log(f"_poll_slides: slide {idx + 1}/{total}")
+            else:
+                was_disconnected = True
 
-        stop_evt.wait(0.25)   # sleep 250 ms, wakes immediately if event is set
+        stop_evt.wait(0.25)
 
     _send({"v": PROTOCOL_VERSION, "type": "slideshow_ended"})
-    _log("_poll_slides: stopped, sent slideshow_ended")
+    _get_connection().close()
+    _log("_poll_slides: ended")
 
 
-# ── Attach / detach helpers ───────────────────────────────────────────
+# ── Presentation detection ─────────────────────────────────────────────
+#
+# IMPORTANT: All UNO API calls MUST happen from the main LibreOffice thread
+# (the event handler thread). UNO services are NOT accessible from Python
+# threading.Thread or threading.Timer threads.
+#
+# Strategy:
+#   1. On every document event, try to find a running presentation
+#      controller using Desktop (main thread, UNO-safe).
+#   2. If found and not already polling, start the poll thread.
+#      (The poll thread only uses ctrl.getCurrentSlideIndex() on an
+#      already-obtained proxy, which does work cross-thread.)
+#   3. If not found, do nothing — wait for the next event.
+#      LibreOffice fires multiple events during presentation startup,
+#      so we'll get another chance.
 
-def _try_attach(doc) -> None:
-    """Called on presentation-mode events — start polling if not already."""
-    global _on_start_seq
-    if _is_polling():
-        return
-    with _on_start_seq_lock:
-        _on_start_seq += 1
-        seq = _on_start_seq
-    _log(f"_try_attach: launching _on_start chain #{seq}")
-    threading.Thread(target=_on_start, args=(doc, 0, seq), daemon=True).start()
 
-
-def _try_detach(doc) -> None:
-    """Called on presentation-mode events — stop polling if presentation ended."""
-    if not _is_polling():
-        return
+def _get_desktop():
+    """Get the Desktop service. MUST be called from main thread."""
     try:
-        running = doc.Presentation.isRunning()
+        ctx = uno.getComponentContext()
+        sm = ctx.ServiceManager
+        return sm.createInstanceWithContext("com.sun.star.frame.Desktop", ctx)
     except Exception:
-        running = False
-    if not running:
-        _stop_poll("OnModeChanged: presentation no longer running")
+        return None
 
 
-def _on_start(doc, retries: int = 0, seq: int = 0) -> None:
-    """Retry loop: wait for pres.isRunning(), then start the poll thread."""
-    # Abort if a newer chain superseded us
-    with _on_start_seq_lock:
-        if seq != _on_start_seq:
-            return
-    # Already polling? Nothing to do
-    if _is_polling():
-        return
-    try:
-        running = doc.Presentation.isRunning()
-    except Exception as exc:
-        _log(f"_on_start #{seq}: pres error: {exc}")
-        return
-    if not running:
-        if retries < 30:
-            threading.Timer(0.5, _on_start, args=(doc, retries + 1, seq)).start()
-        else:
-            _log(f"_on_start #{seq}: gave up waiting")
-        return
-    try:
-        ctrl = doc.Presentation.getController()
-    except Exception as exc:
-        _log(f"_on_start #{seq}: getController error: {exc}")
-        return
-    if ctrl is None:
-        if retries < 30:
-            threading.Timer(0.5, _on_start, args=(doc, retries + 1, seq)).start()
-        else:
-            _log(f"_on_start #{seq}: gave up (no controller)")
-        return
-    _log(f"_on_start #{seq}: OK on retry {retries}")
-    _start_poll(ctrl, doc)
+def _find_presentation_controller(event_doc):
+    """Try to find a running presentation controller.
+
+    Checks multiple sources: event document, Desktop's current component,
+    and all open components. MUST be called from main thread.
+
+    Returns (doc, ctrl) or (None, None).
+    """
+    candidates = []
+
+    # Source 1: The event document itself
+    if event_doc is not None:
+        candidates.append(("event_doc", event_doc))
+
+    # Source 2: Desktop.getCurrentComponent()
+    desktop = _get_desktop()
+    if desktop is not None:
+        try:
+            current = desktop.getCurrentComponent()
+            if current is not None:
+                candidates.append(("desktop_current", current))
+        except Exception as exc:
+            _log(f"  getCurrentComponent failed: {exc}")
+
+        # Source 3: Enumerate all open components
+        try:
+            components = desktop.getComponents()
+            if components is not None:
+                enum = components.createEnumeration()
+                while enum.hasMoreElements():
+                    comp = enum.nextElement()
+                    if comp is not None:
+                        candidates.append(("enumerated", comp))
+        except Exception as exc:
+            _log(f"  getComponents/enumerate failed: {exc}")
+
+    # Try each candidate
+    for source_name, comp in candidates:
+        # Check if it's an Impress document
+        try:
+            if not hasattr(comp, "Presentation"):
+                continue
+        except Exception:
+            continue
+
+        # Try getController() directly (most reliable)
+        try:
+            pres = comp.Presentation
+            ctrl = pres.getController()
+            if ctrl is not None:
+                _log(
+                    f"  FOUND controller via {source_name}.Presentation.getController()"
+                )
+                return comp, ctrl
+        except Exception as exc:
+            _log(f"  {source_name}.getController() failed: {exc}")
+
+        # Fallback: check isRunning
+        try:
+            pres = comp.Presentation
+            running = pres.isRunning()
+            _log(f"  {source_name}.isRunning() = {running}")
+            if running:
+                ctrl = pres.getController()
+                if ctrl is not None:
+                    _log(f"  FOUND controller via {source_name} isRunning path")
+                    return comp, ctrl
+                _log(f"  {source_name}: isRunning=True but getController()=None")
+        except Exception as exc:
+            _log(f"  {source_name}.isRunning() failed: {exc}")
+
+    return None, None
 
 
-# ── Broadcaster listener ──────────────────────────────────────────────
+# ── Event listener ─────────────────────────────────────────────────────
+
 
 class GlobalDocumentEventListener(unohelper.Base, XDocumentEventListener):
+    """Listens for ALL document events and attempts to detect presentation
+    start/stop on every relevant event.
+
+    Key insight: we don't rely on specific event names like OnStartPresentation
+    (which may not fire in all LibreOffice versions). Instead, on EVERY event
+    from a presentation document, we check if a controller is available.
+    """
+
+    # Events that could indicate presentation state changes
+    _RELEVANT_EVENTS = frozenset(
+        {
+            "OnModeChanged",
+            "OnStartPresentation",
+            "OnPresentationBegin",
+            "OnEndPresentation",
+            "OnPresentationEnd",
+            "OnFocus",
+            "OnViewCreated",
+        }
+    )
+
     def documentEventOccured(self, event):
         try:
             name = event.EventName
             doc = event.Source
-            # Filter to presentation documents only (dialogs also send OnModeChanged)
-            try:
-                if not doc.supportsService(
-                    "com.sun.star.presentation.PresentationDocument"
-                ):
-                    return
-            except Exception:
+
+            # Quick filter: skip clearly irrelevant events
+            if name not in self._RELEVANT_EVENTS:
                 return
-            _log(f"event: {name}")
-            if name in ("OnStartPresentation", "OnModeChanged"):
-                _try_attach(doc)
-                _try_detach(doc)
+
+            # Filter: only Impress documents (tolerate None/broken Source)
+            try:
+                if doc is not None and hasattr(doc, "supportsService"):
+                    if not doc.supportsService(
+                        "com.sun.star.presentation.PresentationDocument"
+                    ):
+                        return
+            except Exception:
+                # doc.Source is None or broken — still try, we'll use Desktop
+                pass
+
+            _log(f"event: {name}  polling={_is_polling()}")
+
+            if _is_polling():
+                # Already tracking a presentation — check if it ended
+                self._check_detach(name, doc)
+            else:
+                # Not tracking — check if a presentation started
+                self._check_attach(name, doc)
+
         except Exception as exc:
             _log(f"documentEventOccured EXCEPTION: {exc}")
+
+    def _check_attach(self, name, doc):
+        """Try to find and connect to a running presentation."""
+        found_doc, ctrl = _find_presentation_controller(doc)
+        if ctrl is not None:
+            _log(f"  → starting poll from {name}")
+            _start_poll(ctrl, found_doc)
+        else:
+            _log(f"  → no controller found yet")
+
+    def _check_detach(self, name, doc):
+        """Check if the presentation we're tracking has ended."""
+        # Only check on events that could indicate ending
+        if name not in (
+            "OnModeChanged",
+            "OnEndPresentation",
+            "OnPresentationEnd",
+            "OnFocus",
+            "OnViewCreated",
+        ):
+            return
+        # The poll thread will self-terminate when the controller dies
+        # (getCurrentSlideIndex throws 3 times). But we also check here
+        # for faster detection.
+        found_doc, ctrl = _find_presentation_controller(doc)
+        if ctrl is None and _is_polling():
+            _log(f"  → controller gone, stopping poll from {name}")
+            _stop_poll(f"controller gone ({name})")
 
     def disposing(self, source):
         pass
 
 
+# ── Public entry points ────────────────────────────────────────────────
+
+
 def RegisterSlideRecorderListeners(*args):
-    global _global_listener
     _log("RegisterSlideRecorderListeners called")
     ctx = uno.getComponentContext()
     sm = ctx.ServiceManager
     broadcaster = sm.createInstanceWithContext(
         "com.sun.star.frame.GlobalEventBroadcaster", ctx
     )
-    # Singleton: remove previous listener (if module wasn't reloaded)
-    if _global_listener is not None:
+    if sg["global_listener"] is not None:
         try:
-            broadcaster.removeDocumentEventListener(_global_listener)
+            broadcaster.removeDocumentEventListener(sg["global_listener"])
             _log("Removed old listener")
         except Exception as exc:
             _log(f"Could not remove old listener: {exc}")
-    # Also stop any active poll so state is fully clean
     _stop_poll("re-registration")
     listener = GlobalDocumentEventListener()
     broadcaster.addDocumentEventListener(listener)
-    _global_listener = listener
-    _log("Registered singleton GlobalDocumentEventListener")
+    sg["global_listener"] = listener
+    _log("Registered GlobalDocumentEventListener")
 
 
 def TestConnection(*args):
     try:
-        sock = socket.create_connection(("127.0.0.1", 2765), timeout=2)
+        sock = socket.create_connection(("127.0.0.1", BRIDGE_PORT), timeout=2)
         sock.close()
-        raise RuntimeError("EXITO: Puerto 2765 accesible.")
+        raise RuntimeError(f"EXITO: Puerto {BRIDGE_PORT} accesible.")
     except RuntimeError:
         raise
     except ConnectionRefusedError:
@@ -358,7 +457,7 @@ def ShowLog(*args):
             lines = f.readlines()
         text = "".join(lines[-40:])
     except FileNotFoundError:
-        text = "(log file not found — run RegisterSlideRecorderListeners first)"
+        text = "(log file not found)"
     except Exception as e:
         text = f"Error reading log: {e}"
     ctx = uno.getComponentContext()
@@ -369,15 +468,12 @@ def ShowLog(*args):
         toolkit = sm.createInstanceWithContext("com.sun.star.awt.Toolkit", ctx)
         msgbox = toolkit.createMessageBox(
             frame.getContainerWindow(),
-            0,  # MESSAGEBOX
-            1,  # OK button
+            0,
+            1,
             "slide_recorder_debug.log",
             text or "(log is empty)",
         )
         msgbox.execute()
 
 
-# Only expose public entry points in the LibreOffice macro browser.
-# Internal helpers (_log, _send, _get_connection, etc.) are NOT listed here
-# and will not appear as runnable macros.
 g_exportedScripts = (RegisterSlideRecorderListeners, TestConnection, ShowLog)

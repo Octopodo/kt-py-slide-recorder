@@ -48,16 +48,29 @@ class RecordingService:
         with self._lock:
             if self._state == RecordingState.RECORDING:
                 return
-            self._provider.reset()
+            
+            # DO NOT reset the provider here. The provider knows the actual current
+            # slide (e.g. if Impress is already mid-presentation).
             self._start_monotonic = time.monotonic()
             self._session = Session(
                 start_iso=datetime.now().astimezone().isoformat(),
                 title=title,
             )
             self._state = RecordingState.RECORDING
+            
+            initial_event = None
+            if self._provider.current_index > 0:
+                initial_event = SlideEvent(
+                    time_s=0.0,
+                    slide_index=self._provider.current_index,
+                )
+                self._session.events.append(initial_event)
 
         if self.on_state_change:
             self.on_state_change(RecordingState.RECORDING)
+            
+        if initial_event is not None and self.on_event:
+            self.on_event(initial_event)
 
     def stop(self) -> None:
         """Stop the current recording. No-op if not recording."""

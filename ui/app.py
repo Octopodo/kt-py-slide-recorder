@@ -1,3 +1,4 @@
+import logging
 import os
 from tkinter import filedialog, messagebox
 
@@ -228,8 +229,7 @@ class App(ctk.CTk):
 
         self._event_count = 0
         self._control_panel.reset_display()
-        self._impress_provider.reset()
-        self._key_provider.reset()
+        # Keep slide providers state intact so we don't lose the current slide index
         self._recording_service.start(title=self._control_panel.title)
 
         snapshot = self._recording_service.get_session_snapshot()
@@ -255,21 +255,40 @@ class App(ctk.CTk):
     # ------------------------------------------------------------------ #
 
     def _on_impress_slide_changed(self, index: int, total: int) -> None:
+        # Thread-safe operations — run immediately for timing accuracy
         self._impress_provider.notify_slide(index, total)
         self._recording_service.register_slide_change(index)
 
     def _on_impress_slideshow_started(self, total: int) -> None:
         self._impress_provider.reset()
-        self.after(0, self._connection_panel.update_impress_status, True, True)
+        self.after(0, self._handle_slideshow_started)
 
     def _on_impress_slideshow_ended(self) -> None:
-        self.after(0, self._connection_panel.update_impress_status, True, False)
+        self.after(0, self._handle_slideshow_ended)
 
     def _on_impress_connected(self) -> None:
-        self.after(0, self._connection_panel.update_impress_status, True, False)
+        self.after(0, self._handle_impress_connected)
 
     def _on_impress_disconnected(self) -> None:
-        self.after(0, self._connection_panel.update_impress_status, False, False)
+        self.after(0, self._handle_impress_disconnected)
+
+    # -- Handlers executed on the main thread --
+
+    def _handle_slideshow_started(self) -> None:
+        logging.getLogger(__name__).info("Impress: slideshow started")
+        self._connection_panel.update_impress_status(True, True)
+
+    def _handle_slideshow_ended(self) -> None:
+        logging.getLogger(__name__).info("Impress: slideshow ended")
+        self._connection_panel.update_impress_status(True, False)
+
+    def _handle_impress_connected(self) -> None:
+        logging.getLogger(__name__).info("Impress: macro connected")
+        self._connection_panel.update_impress_status(True, False)
+
+    def _handle_impress_disconnected(self) -> None:
+        logging.getLogger(__name__).info("Impress: macro disconnected")
+        self._connection_panel.update_impress_status(False, False)
 
     # ------------------------------------------------------------------ #
     # OBS callbacks (OBS event thread → after(0,...) → main)              #

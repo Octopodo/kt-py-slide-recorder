@@ -24,7 +24,7 @@ class ImpressSlideIndexProvider:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._index: int = 1
+        self._index: int = 0
         self._total: int = 0
 
     # ------------------------------------------------------------------ #
@@ -44,7 +44,7 @@ class ImpressSlideIndexProvider:
 
     def reset(self) -> None:
         with self._lock:
-            self._index = 1
+            self._index = 0
             self._total = 0
 
     # ------------------------------------------------------------------ #

@@ -28,9 +28,12 @@ Scalability note:
 """
 
 import json
+import logging
 import socket
 import threading
 from typing import Callable, Optional
+
+log = logging.getLogger(__name__)
 
 
 BIND_HOST = "127.0.0.1"  # change to "0.0.0.0" for LAN access
@@ -118,8 +121,12 @@ class ImpressBridge:
             with self._client_lock:
                 self._client_socket = conn
 
+            log.info("Impress macro connected")
             if self.on_client_connected:
-                self.on_client_connected()
+                try:
+                    self.on_client_connected()
+                except Exception:
+                    log.exception("on_client_connected callback error")
 
             t = threading.Thread(
                 target=self._client_thread,
@@ -165,15 +172,21 @@ class ImpressBridge:
                     if line:
                         self._dispatch(conn, line)
         finally:
+            fire_disconnect = False
             with self._client_lock:
                 if self._client_socket is conn:
                     self._client_socket = None
+                    fire_disconnect = True
             try:
                 conn.close()
             except OSError:
                 pass
-            if self.on_client_disconnected:
-                self.on_client_disconnected()
+            if fire_disconnect and self.on_client_disconnected:
+                log.info("Impress macro disconnected")
+                try:
+                    self.on_client_disconnected()
+                except Exception:
+                    log.exception("on_client_disconnected callback error")
 
     def _dispatch(self, conn: socket.socket, raw: str) -> None:
         try:
@@ -183,30 +196,35 @@ class ImpressBridge:
 
         msg_type = msg.get("type", "")
 
-        if msg_type == "slide_changed":
-            index = int(msg.get("index", 0))
-            total = int(msg.get("total", 0))
-            if self.on_slide_changed:
-                self.on_slide_changed(index, total)
+        try:
+            if msg_type == "slide_changed":
+                index = int(msg.get("index", 0))
+                total = int(msg.get("total", 0))
+                if self.on_slide_changed:
+                    self.on_slide_changed(index, total)
 
-        elif msg_type == "slideshow_started":
-            total = int(msg.get("total", 0))
-            if self.on_slideshow_started:
-                self.on_slideshow_started(total)
+            elif msg_type == "slideshow_started":
+                total = int(msg.get("total", 0))
+                log.info("Slideshow started (total=%d)", total)
+                if self.on_slideshow_started:
+                    self.on_slideshow_started(total)
 
-        elif msg_type == "slideshow_ended":
-            if self.on_slideshow_ended:
-                self.on_slideshow_ended()
+            elif msg_type == "slideshow_ended":
+                log.info("Slideshow ended")
+                if self.on_slideshow_ended:
+                    self.on_slideshow_ended()
 
-        elif msg_type == "ping":
-            try:
-                conn.sendall(
-                    (
-                        json.dumps({"v": PROTOCOL_VERSION, "type": "pong"}) + "\n"
-                    ).encode()
-                )
-            except OSError:
-                pass
+            elif msg_type == "ping":
+                try:
+                    conn.sendall(
+                        (
+                            json.dumps({"v": PROTOCOL_VERSION, "type": "pong"}) + "\n"
+                        ).encode()
+                    )
+                except OSError:
+                    pass
+        except Exception:
+            log.exception("Error dispatching message type=%s", msg_type)
 
     # ------------------------------------------------------------------ #
     # Internal — helpers                                                  #
