@@ -48,16 +48,29 @@ class RecordingService:
         with self._lock:
             if self._state == RecordingState.RECORDING:
                 return
-            self._provider.reset()
+            
+            # DO NOT reset the provider here. The provider knows the actual current
+            # slide (e.g. if Impress is already mid-presentation).
             self._start_monotonic = time.monotonic()
             self._session = Session(
                 start_iso=datetime.now().astimezone().isoformat(),
                 title=title,
             )
             self._state = RecordingState.RECORDING
+            
+            initial_event = None
+            if self._provider.current_index > 0:
+                initial_event = SlideEvent(
+                    time_s=0.0,
+                    slide_index=self._provider.current_index,
+                )
+                self._session.events.append(initial_event)
 
         if self.on_state_change:
             self.on_state_change(RecordingState.RECORDING)
+            
+        if initial_event is not None and self.on_event:
+            self.on_event(initial_event)
 
     def stop(self) -> None:
         """Stop the current recording. No-op if not recording."""
@@ -71,23 +84,18 @@ class RecordingService:
         if self.on_state_change:
             self.on_state_change(RecordingState.STOPPED)
 
-    def register_event(self, direction: str) -> None:
+    def register_slide_change(self, index: int) -> None:
         """
-        Record a slide navigation event. Called from the pynput thread.
-        direction must be "forward" or "backward".
+        Record a slide change event using the absolute slide index.
+        Safe to call from any thread (pynput, socket listener, etc.).
         """
         event: Optional[SlideEvent] = None
         with self._lock:
             if self._state != RecordingState.RECORDING or self._session is None:
                 return
-            if direction == "forward":
-                self._provider.on_forward()
-            else:
-                self._provider.on_backward()
             event = SlideEvent(
                 time_s=round(time.monotonic() - self._start_monotonic, 3),
-                direction=direction,
-                slide_index=self._provider.current_index,
+                slide_index=index,
             )
             self._session.events.append(event)
 

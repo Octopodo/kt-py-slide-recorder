@@ -53,6 +53,10 @@ class KeyListenerService:
         self._capture_lock = threading.Lock()
         self._listener: Optional[keyboard.Listener] = None
 
+    @property
+    def is_active(self) -> bool:
+        return self._listener is not None and self._listener.is_alive()
+
     def start(self) -> None:
         """Start the global listener. Idempotent."""
         if self._listener and self._listener.is_alive():
