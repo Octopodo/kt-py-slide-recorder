@@ -79,7 +79,9 @@ class ConnectionPanel(ctk.CTkFrame):
     # Public update methods (call from main thread only)                  #
     # ------------------------------------------------------------------ #
 
-    def update_impress_status(self, connected: bool, in_presentation: bool = False) -> None:
+    def update_impress_status(
+        self, connected: bool, in_presentation: bool = False
+    ) -> None:
         if connected and in_presentation:
             self._impress_dot.configure(text=_DOT_ON, text_color=_COLOR_GREEN)
             self._impress_status.configure(text="In Presentation")
