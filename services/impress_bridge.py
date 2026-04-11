@@ -57,7 +57,7 @@ class ImpressBridge:
         self._accept_thread: Optional[threading.Thread] = None
 
         # Callbacks — set by the App after construction
-        self.on_slide_changed: Optional[Callable[[int, int], None]] = None
+        self.on_slide_changed: Optional[Callable[[int, int, str], None]] = None
         self.on_slideshow_started: Optional[Callable[[int], None]] = None
         self.on_slideshow_ended: Optional[Callable[[], None]] = None
         self.on_client_connected: Optional[Callable[[], None]] = None
@@ -201,7 +201,7 @@ class ImpressBridge:
                 index = int(msg.get("index", 0))
                 total = int(msg.get("total", 0))
                 if self.on_slide_changed:
-                    self.on_slide_changed(index, total)
+                    self.on_slide_changed(index, total, msg_type)
 
             elif msg_type == "slideshow_started":
                 total = int(msg.get("total", 0))

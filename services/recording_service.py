@@ -63,6 +63,7 @@ class RecordingService:
                 initial_event = SlideEvent(
                     time_s=0.0,
                     slide_index=self._provider.current_index,
+                    event_type="initial",
                 )
                 self._session.events.append(initial_event)
 
@@ -84,7 +85,7 @@ class RecordingService:
         if self.on_state_change:
             self.on_state_change(RecordingState.STOPPED)
 
-    def register_slide_change(self, index: int) -> None:
+    def register_slide_change(self, index: int, event_type: str = "slide_changed") -> None:
         """
         Record a slide change event using the absolute slide index.
         Safe to call from any thread (pynput, socket listener, etc.).
@@ -96,6 +97,7 @@ class RecordingService:
             event = SlideEvent(
                 time_s=round(time.monotonic() - self._start_monotonic, 3),
                 slide_index=index,
+                event_type=event_type,
             )
             self._session.events.append(event)
 

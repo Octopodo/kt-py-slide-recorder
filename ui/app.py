@@ -254,16 +254,20 @@ class App(ctk.CTk):
     # Impress bridge callbacks (socket thread → after(0,...) → main)      #
     # ------------------------------------------------------------------ #
 
-    def _on_impress_slide_changed(self, index: int, total: int) -> None:
+    def _on_impress_slide_changed(self, index: int, total: int, event_type: str = "slide_changed") -> None:
         # Thread-safe operations — run immediately for timing accuracy
         self._impress_provider.notify_slide(index, total)
-        self._recording_service.register_slide_change(index)
+        self._recording_service.register_slide_change(index, event_type)
 
     def _on_impress_slideshow_started(self, total: int) -> None:
         self._impress_provider.reset()
+        self._recording_service.register_slide_change(0, "slideshow_started")
         self.after(0, self._handle_slideshow_started)
 
     def _on_impress_slideshow_ended(self) -> None:
+        self._recording_service.register_slide_change(
+            self._impress_provider.current_index, "slideshow_ended"
+        )
         self.after(0, self._handle_slideshow_ended)
 
     def _on_impress_connected(self) -> None:
