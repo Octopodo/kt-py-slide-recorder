@@ -83,6 +83,7 @@ class SaveHandlersMixin:
                 if not self._save_snapshot(snapshot):
                     return
 
+        self._settings.window_geometry = self.geometry()
         self._recording_service.stop()
         self._storage_service.stop_autosave()
         self._key_listener.stop()

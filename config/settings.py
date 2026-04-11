@@ -161,3 +161,11 @@ class Settings:
     @last_session_title.setter
     def last_session_title(self, v: str) -> None:
         self._set("last_session_title", v)
+
+    @property
+    def window_geometry(self) -> str:
+        return self._get("window_geometry", "")
+
+    @window_geometry.setter
+    def window_geometry(self, v: str) -> None:
+        self._set("window_geometry", v)

@@ -34,13 +34,14 @@ class App(AppHandlersMixin, ctk.CTk):
 
     def __init__(self) -> None:
         super().__init__()
+        self._settings = Settings()
+
         self.title(APP_TITLE)
-        self.geometry(APP_GEOMETRY)
-        self.resizable(False, False)
+        self.geometry(self._settings.window_geometry or APP_GEOMETRY)
+        self.resizable(True, True)
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
 
-        self._settings = Settings()
         self._autosave_interval_s: int = self._settings.autosave_interval_s
         self._event_count: int = 0
         self._timer_job = None
