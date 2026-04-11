@@ -60,8 +60,10 @@ class RecordingService:
             
             initial_event = None
             if self._provider.current_index > 0:
+                now = datetime.now()
                 initial_event = SlideEvent(
-                    time_s=0.0,
+                    time_hms=now.strftime("%H:%M:%S"),
+                    time_ms=int(now.timestamp() * 1000),
                     slide_index=self._provider.current_index,
                     event_type="initial",
                 )
@@ -94,8 +96,10 @@ class RecordingService:
         with self._lock:
             if self._state != RecordingState.RECORDING or self._session is None:
                 return
+            now = datetime.now()
             event = SlideEvent(
-                time_s=round(time.monotonic() - self._start_monotonic, 3),
+                time_hms=now.strftime("%H:%M:%S"),
+                time_ms=int(now.timestamp() * 1000),
                 slide_index=index,
                 event_type=event_type,
             )
