@@ -151,18 +151,6 @@ class App(ctk.CTk):
         )
         self._control_panel.pack(fill="x")
 
-        # ── Key Bindings ───────────────────────────────────────────────
-        sec_keys = _CollapsibleSection(scroll, "Key Bindings", expanded=True)
-        sec_keys.pack(**sec_opts)
-        self._key_config_panel = KeyConfigPanel(
-            sec_keys.content_frame,
-            on_capture_forward=self._start_capture_forward,
-            on_capture_backward=self._start_capture_backward,
-            forward_display=key_to_display(self._key_listener.forward_key),
-            backward_display=key_to_display(self._key_listener.backward_key),
-        )
-        self._key_config_panel.pack(fill="x")
-
         # ── Connections ────────────────────────────────────────────────
         sec_conn = _CollapsibleSection(scroll, "Connections", expanded=True)
         sec_conn.pack(**sec_opts)
@@ -172,6 +160,18 @@ class App(ctk.CTk):
             obs_auto_control=self._settings.obs_auto_control,
         )
         self._connection_panel.pack(fill="x")
+
+        # ── Save ───────────────────────────────────────────────────────
+        sec_save = _CollapsibleSection(scroll, "Save", expanded=True)
+        sec_save.pack(**sec_opts)
+        self._save_panel = SavePanel(
+            sec_save.content_frame,
+            on_path_changed=self._on_path_changed,
+            on_manual_save=self._on_manual_save,
+            on_autosave_interval_changed=self._on_autosave_interval_changed,
+            default_interval=self._autosave_interval_s,
+        )
+        self._save_panel.pack(fill="x")
 
         # ── OBS Settings (collapsed by default) ────────────────────────
         sec_obs = _CollapsibleSection(scroll, "OBS Settings", expanded=False)
@@ -185,17 +185,17 @@ class App(ctk.CTk):
         )
         self._obs_settings_panel.pack(fill="x")
 
-        # ── Save ───────────────────────────────────────────────────────
-        sec_save = _CollapsibleSection(scroll, "Save", expanded=True)
-        sec_save.pack(**sec_opts)
-        self._save_panel = SavePanel(
-            sec_save.content_frame,
-            on_path_changed=self._on_path_changed,
-            on_manual_save=self._on_manual_save,
-            on_autosave_interval_changed=self._on_autosave_interval_changed,
-            default_interval=self._autosave_interval_s,
+        # ── Key Bindings ───────────────────────────────────────────────
+        sec_keys = _CollapsibleSection(scroll, "Key Bindings", expanded=False)
+        sec_keys.pack(**sec_opts)
+        self._key_config_panel = KeyConfigPanel(
+            sec_keys.content_frame,
+            on_capture_forward=self._start_capture_forward,
+            on_capture_backward=self._start_capture_backward,
+            forward_display=key_to_display(self._key_listener.forward_key),
+            backward_display=key_to_display(self._key_listener.backward_key),
         )
-        self._save_panel.pack(fill="x")
+        self._key_config_panel.pack(fill="x")
 
     def _wire_callbacks(self) -> None:
         self._recording_service.on_event = self._on_slide_event_from_thread
