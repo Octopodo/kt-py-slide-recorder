@@ -57,33 +57,42 @@ class RecordingService:
                 title=title,
             )
             self._state = RecordingState.RECORDING
-            
-            initial_event = None
-            if self._provider.current_index > 0:
-                now = datetime.now()
-                initial_event = SlideEvent(
-                    time_hms=now.strftime("%H:%M:%S"),
-                    time_ms=int(now.timestamp() * 1000),
-                    slide_index=self._provider.current_index,
-                    event_type="initial",
-                )
-                self._session.events.append(initial_event)
+
+            now = datetime.now()
+            initial_event = SlideEvent(
+                time_hms=now.strftime("%H:%M:%S"),
+                time_ms=int(now.timestamp() * 1000),
+                slide_index=self._provider.current_index,
+                event_type="initial",
+            )
+            self._session.events.append(initial_event)
 
         if self.on_state_change:
             self.on_state_change(RecordingState.RECORDING)
-            
-        if initial_event is not None and self.on_event:
+
+        if self.on_event:
             self.on_event(initial_event)
 
     def stop(self) -> None:
         """Stop the current recording. No-op if not recording."""
+        end_event: Optional[SlideEvent] = None
         with self._lock:
             if self._state != RecordingState.RECORDING:
                 return
             if self._session is not None:
                 self._session.duration_s = time.monotonic() - self._start_monotonic
+                now = datetime.now()
+                end_event = SlideEvent(
+                    time_hms=now.strftime("%H:%M:%S"),
+                    time_ms=int(now.timestamp() * 1000),
+                    slide_index=self._provider.current_index,
+                    event_type="record_end",
+                )
+                self._session.events.append(end_event)
             self._state = RecordingState.STOPPED
 
+        if end_event is not None and self.on_event:
+            self.on_event(end_event)
         if self.on_state_change:
             self.on_state_change(RecordingState.STOPPED)
 

@@ -139,7 +139,7 @@ class StorageService:
     @staticmethod
     def _strip_non_slide_events(session: Session) -> Session:
         """Return a shallow copy keeping only 'initial' and 'slide_changed' events."""
-        _KEEP = {"initial", "slide_changed"}
+        _KEEP = {"initial", "slide_changed", "record_end"}
         filtered = [e for e in session.events if e.event_type in _KEEP]
         return Session(
             start_iso=session.start_iso,
