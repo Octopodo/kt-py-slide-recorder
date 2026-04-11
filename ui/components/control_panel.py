@@ -14,11 +14,13 @@ class ControlPanel(ctk.CTkFrame):
         parent,
         on_record: callable,
         on_stop: callable,
+        default_title: str = "",
     ) -> None:
         super().__init__(parent, corner_radius=8)
         self._on_record = on_record
         self._on_stop = on_stop
         self._is_recording = False
+        self._default_title = default_title
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -31,7 +33,7 @@ class ControlPanel(ctk.CTkFrame):
         ctk.CTkLabel(self, text="Session title:").grid(
             row=1, column=0, padx=(12, 4), pady=(0, 6), sticky="e"
         )
-        self._title_var = ctk.StringVar(value="")
+        self._title_var = ctk.StringVar(value=self._default_title)
         self._title_entry = ctk.CTkEntry(
             self,
             textvariable=self._title_var,
@@ -111,6 +113,9 @@ class ControlPanel(ctk.CTkFrame):
 
     def update_event_count(self, count: int) -> None:
         self._counter_label.configure(text=str(count))
+
+    def set_title(self, title: str) -> None:
+        self._title_var.set(title)
 
     def reset_display(self) -> None:
         self.update_elapsed(0.0)

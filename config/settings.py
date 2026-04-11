@@ -145,3 +145,19 @@ class Settings:
     @obs_auto_control.setter
     def obs_auto_control(self, v: bool) -> None:
         self._set("obs_auto_control", v)
+
+    @property
+    def last_save_path(self) -> str:
+        return self._get("last_save_path", "")
+
+    @last_save_path.setter
+    def last_save_path(self, v: str) -> None:
+        self._set("last_save_path", v)
+
+    @property
+    def last_session_title(self) -> str:
+        return self._get("last_session_title", "")
+
+    @last_session_title.setter
+    def last_session_title(self, v: str) -> None:
+        self._set("last_session_title", v)

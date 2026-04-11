@@ -1,5 +1,11 @@
+import os
+
 APP_TITLE: str = "Slide Recorder"
 APP_GEOMETRY: str = "480x680"
+
+_PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_SAVE_DIR: str = os.path.join(_PROJECT_ROOT, "tests", "results")
+DEFAULT_SESSION_TITLE: str = "recording"
 
 DEFAULT_FORWARD_KEY: str = "right"
 DEFAULT_BACKWARD_KEY: str = "left"

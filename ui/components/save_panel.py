@@ -22,11 +22,13 @@ class SavePanel(ctk.CTkFrame):
         on_manual_save: Callable[[], None],
         on_autosave_interval_changed: Callable[[int], None],
         default_interval: int = 60,
+        default_path: str = "",
     ) -> None:
         super().__init__(parent, corner_radius=8)
         self._on_path_changed = on_path_changed
         self._on_manual_save = on_manual_save
         self._on_autosave_interval_changed = on_autosave_interval_changed
+        self._default_path = default_path
         self._build_ui(default_interval)
 
     def _build_ui(self, default_interval: int) -> None:
@@ -40,7 +42,7 @@ class SavePanel(ctk.CTkFrame):
         ctk.CTkLabel(self, text="Save path:").grid(
             row=1, column=0, padx=(12, 6), pady=4, sticky="w"
         )
-        self._path_var = ctk.StringVar(value="")
+        self._path_var = ctk.StringVar(value=self._default_path)
         self._path_entry = ctk.CTkEntry(
             self,
             textvariable=self._path_var,
