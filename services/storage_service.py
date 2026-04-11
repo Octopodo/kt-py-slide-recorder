@@ -83,7 +83,8 @@ class StorageService:
             session = self._session_getter()
             if session:
                 try:
-                    payload = self._serialize(session)
+                    cleaned = self._strip_non_slide_events(session)
+                    payload = self._serialize(cleaned)
                     with self._write_lock:
                         with open(self._save_path, "w", encoding="utf-8") as fh:
                             json.dump(payload, fh, indent=2, ensure_ascii=False)
@@ -134,3 +135,15 @@ class StorageService:
             "total_events": len(session.events),
             "events": [asdict(e) for e in session.events],
         }
+
+    @staticmethod
+    def _strip_non_slide_events(session: Session) -> Session:
+        """Return a shallow copy keeping only 'initial' and 'slide_changed' events."""
+        _KEEP = {"initial", "slide_changed"}
+        filtered = [e for e in session.events if e.event_type in _KEEP]
+        return Session(
+            start_iso=session.start_iso,
+            title=session.title,
+            events=filtered,
+            duration_s=session.duration_s,
+        )
