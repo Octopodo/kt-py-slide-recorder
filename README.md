@@ -32,11 +32,11 @@ To let the app detect slide changes automatically, install a macro in LibreOffic
 
 1. Copy `impress_extension/slide_recorder_macro.py` into the LibreOffice Python scripts folder:
 
-   | OS | Path |
-   |---|---|
-   | Windows | `%APPDATA%\LibreOffice\4\user\Scripts\python\` |
-   | macOS | `~/Library/Application Support/LibreOffice/4/user/Scripts/python/` |
-   | Linux | `~/.config/libreoffice/4/user/Scripts/python/` |
+   | OS      | Path                                                               |
+   | ------- | ------------------------------------------------------------------ |
+   | Windows | `%APPDATA%\LibreOffice\4\user\Scripts\python\`                     |
+   | macOS   | `~/Library/Application Support/LibreOffice/4/user/Scripts/python/` |
+   | Linux   | `~/.config/libreoffice/4/user/Scripts/python/`                     |
 
    Create the `python` folder if it doesn't exist.
 
@@ -65,7 +65,7 @@ python main.py
 ### Recording workflow
 
 1. **Title** — Enter a session name (default: `recording`).
-2. **Save path** — Choose the output folder with *Browse* or keep the default (`tests/results/`).
+2. **Save path** — Choose the output folder with _Browse_ or keep the default (`tests/results/`).
 3. **Record** — Start recording. The timer begins.
 4. **Navigate** — Use the forward/backward keys (arrow keys by default) to register slide changes.
 5. **Stop** — Stop recording. The JSON is saved automatically to the selected path.
@@ -78,44 +78,44 @@ python main.py
 
 ![Recording section](docs/images/section_recording.png)
 
-| Control | Description |
-|---|---|
-| Title | Session name (used as the JSON filename) |
-| Record / Stop | Start or stop recording |
-| Timer | Elapsed time in `HH:MM:SS` format |
-| Debug panel | Collapsible side panel showing real-time info: event count, type, slide index, timestamps |
+| Control       | Description                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------- |
+| Title         | Session name (used as the JSON filename)                                                  |
+| Record / Stop | Start or stop recording                                                                   |
+| Timer         | Elapsed time in `HH:MM:SS` format                                                         |
+| Debug panel   | Collapsible side panel showing real-time info: event count, type, slide index, timestamps |
 
 ### Connections
 
 ![Connections section](docs/images/section_connections.png)
 
-| Control | Description |
-|---|---|
-| Impress | Connection indicator (● green = in presentation, ● yellow = connected, ○ grey = disconnected) |
-| OBS | Connection indicator (● green = connected/recording, ○ grey = disconnected) |
-| Control OBS recording | When enabled, starts/stops OBS recording along with the session |
-| Debug | When enabled, shows alert dialogs with OBS connection attempt results |
+| Control               | Description                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| Impress               | Connection indicator (● green = in presentation, ● yellow = connected, ○ grey = disconnected) |
+| OBS                   | Connection indicator (● green = connected/recording, ○ grey = disconnected)                   |
+| Control OBS recording | When enabled, starts/stops OBS recording along with the session                               |
+| Debug                 | When enabled, shows alert dialogs with OBS connection attempt results                         |
 
 ### Save
 
 ![Save section](docs/images/section_save.png)
 
-| Control | Description |
-|---|---|
-| Save path | Output JSON file path. Changing it updates the session title |
-| Autosave interval | Auto-save frequency in seconds (minimum 5s, default 60s) |
-| Save Now | Save the current session manually at any time |
+| Control           | Description                                                  |
+| ----------------- | ------------------------------------------------------------ |
+| Save path         | Output JSON file path. Changing it updates the session title |
+| Autosave interval | Auto-save frequency in seconds (minimum 5s, default 60s)     |
+| Save Now          | Save the current session manually at any time                |
 
 ### OBS Settings
 
 ![OBS Settings section](docs/images/section_obs_settings.png)
 
-| Field | Default | Description |
-|---|---|---|
-| Host | `localhost` | OBS WebSocket server address |
-| Port | `4455` | OBS WebSocket port |
-| Password | *(empty)* | OBS authentication password |
-| Connect / Reconnect | | Connect or reconnect with the updated settings |
+| Field               | Default     | Description                                    |
+| ------------------- | ----------- | ---------------------------------------------- |
+| Host                | `localhost` | OBS WebSocket server address                   |
+| Port                | `4455`      | OBS WebSocket port                             |
+| Password            | _(empty)_   | OBS authentication password                    |
+| Connect / Reconnect |             | Connect or reconnect with the updated settings |
 
 > OBS can run on the same machine or on another machine on the local network.
 
@@ -123,10 +123,10 @@ python main.py
 
 ![Key Bindings section](docs/images/section_key_bindings.png)
 
-| Key | Default | Description |
-|---|---|---|
-| Forward | Right arrow (→) | Register slide advance |
-| Backward | Left arrow (←) | Register slide backward |
+| Key      | Default         | Description             |
+| -------- | --------------- | ----------------------- |
+| Forward  | Right arrow (→) | Register slide advance  |
+| Backward | Left arrow (←)  | Register slide backward |
 
 To rebind a key: click **Capture** then press the desired key. Changes apply immediately.
 
@@ -169,16 +169,16 @@ To rebind a key: click **Capture** then press the desired key. Changes apply imm
 }
 ```
 
-| Field | Description |
-|---|---|
-| `title` | Session name |
-| `session_start_iso` | Start date and time (ISO 8601) |
-| `duration_s` | Total duration in seconds |
-| `total_events` | Number of recorded events |
-| `time_hms` | Event timestamp in `HH:MM:SS` format |
-| `time_ms` | Milliseconds since recording started |
-| `slide_index` | Current slide index (0-based) |
-| `event_type` | `initial`, `slide_changed`, or `record_end` |
+| Field               | Description                                 |
+| ------------------- | ------------------------------------------- |
+| `title`             | Session name                                |
+| `session_start_iso` | Start date and time (ISO 8601)              |
+| `duration_s`        | Total duration in seconds                   |
+| `total_events`      | Number of recorded events                   |
+| `time_hms`          | Event timestamp in `HH:MM:SS` format        |
+| `time_ms`           | Milliseconds since recording started        |
+| `slide_index`       | Current slide index (0-based)               |
+| `event_type`        | `initial`, `slide_changed`, or `record_end` |
 
 > The final JSON only contains relevant events: `initial` (on Record press), `slide_changed` (slide transitions), and `record_end` (on Stop press). Intermediate navigation events are filtered out.
 
@@ -192,9 +192,9 @@ All settings are saved automatically to `config.json` in the project root. It is
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---|---|
-| Slides are not detected | Make sure you ran `RegisterSlideRecorderListeners` in LibreOffice while the app is running |
-| OBS won't connect | Check Host, Port, and Password in OBS Settings. Enable the *Debug* checkbox in Connections to see the specific error |
-| Macro doesn't appear | Verify that `slide_recorder_macro.py` is in the correct folder and macro security is set to *Medium* |
-| Port mismatch | If the port is changed in the app, update `BRIDGE_PORT` in `slide_recorder_macro.py` accordingly |
+| Problem                 | Solution                                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Slides are not detected | Make sure you ran `RegisterSlideRecorderListeners` in LibreOffice while the app is running                           |
+| OBS won't connect       | Check Host, Port, and Password in OBS Settings. Enable the _Debug_ checkbox in Connections to see the specific error |
+| Macro doesn't appear    | Verify that `slide_recorder_macro.py` is in the correct folder and macro security is set to _Medium_                 |
+| Port mismatch           | If the port is changed in the app, update `BRIDGE_PORT` in `slide_recorder_macro.py` accordingly                     |
