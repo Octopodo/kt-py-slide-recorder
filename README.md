@@ -110,6 +110,16 @@ python main.py
 
 ![OBS Settings section](docs/images/section_obs_settings.png)
 
+#### Configuring OBS
+
+1. Open OBS Studio and go to **Tools → WebSocket Server Settings**.
+2. Check **Enable WebSocket server**.
+3. Set a **Server Port** (default: `4455`).
+4. Optionally set a **Server Password** for authentication.
+5. Click **Apply** / **OK**.
+
+#### Connecting from Slide Recorder
+
 | Field               | Default     | Description                                    |
 | ------------------- | ----------- | ---------------------------------------------- |
 | Host                | `localhost` | OBS WebSocket server address                   |
@@ -117,7 +127,12 @@ python main.py
 | Password            | _(empty)_   | OBS authentication password                    |
 | Connect / Reconnect |             | Connect or reconnect with the updated settings |
 
-> OBS can run on the same machine or on another machine on the local network.
+1. Enter the **Host** where OBS is running (`localhost` if on the same machine, or the IP address if on another machine on the LAN, e.g. `192.168.1.50`).
+2. Enter the **Port** and **Password** matching your OBS WebSocket configuration.
+3. Click **Connect**.
+4. The OBS indicator in the Connections section will turn green (●) when connected.
+
+> To verify the connection, enable the **Debug** checkbox in the Connections section — an alert will show success or the specific error on connection attempts.
 
 ### Key Bindings
 
