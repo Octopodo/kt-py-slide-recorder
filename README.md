@@ -9,8 +9,8 @@ Desktop application that records slide transitions during a LibreOffice Impress 
 ## Requirements
 
 - **Python 3.10+**
-- **LibreOffice Impress 7.0+** (optional — for automatic slide detection)
-- **OBS Studio** with WebSocket v5 enabled (optional — for recording control)
+- **[LibreOffice Impress](https://www.libreoffice.org/download/download-libreoffice/) 7.0+** (optional — for automatic slide detection)
+- **[OBS Studio](https://obsproject.com/download)** with WebSocket v5 enabled (optional — for recording control)
 
 ## Installation
 
@@ -38,7 +38,7 @@ To let the app detect slide changes automatically, install a macro in LibreOffic
    | macOS   | `~/Library/Application Support/LibreOffice/4/user/Scripts/python/` |
    | Linux   | `~/.config/libreoffice/4/user/Scripts/python/`                     |
 
-   Create the `python` folder if it doesn't exist.
+   Create the `Scripts` and `python` folder if it doesn't exist.
 
 2. In LibreOffice: **Tools → Options → LibreOffice → Security → Macro Security** → set to **Medium** → OK → restart LibreOffice.
 
@@ -123,10 +123,13 @@ python main.py
 
 ![Key Bindings section](docs/images/section_key_bindings.png)
 
-| Key      | Default         | Description             |
-| -------- | --------------- | ----------------------- |
-| Forward  | Right arrow (→) | Register slide advance  |
-| Backward | Left arrow (←)  | Register slide backward |
+| Control             | Default         | Description                                                                   |
+| ------------------- | --------------- | ----------------------------------------------------------------------------- |
+| Enable key bindings | Off             | Checkbox that enables/disables keyboard slide navigation. Disabled by default |
+| Forward             | Right arrow (→) | Register slide advance                                                        |
+| Backward            | Left arrow (←)  | Register slide backward                                                       |
+
+Key bindings only work as a fallback when LibreOffice Impress is **not connected**. If Impress is connected, slide changes are detected automatically via the macro regardless of this setting.
 
 To rebind a key: click **Capture** then press the desired key. Changes apply immediately.
 
