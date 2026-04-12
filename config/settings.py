@@ -163,6 +163,14 @@ class Settings:
         self._set("last_session_title", v)
 
     @property
+    def key_bindings_enabled(self) -> bool:
+        return bool(self._get("key_bindings_enabled", False))
+
+    @key_bindings_enabled.setter
+    def key_bindings_enabled(self, v: bool) -> None:
+        self._set("key_bindings_enabled", v)
+
+    @property
     def debug(self) -> bool:
         return bool(self._get("debug", False))
 

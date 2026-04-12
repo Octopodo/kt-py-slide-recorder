@@ -166,12 +166,15 @@ class App(AppHandlersMixin, ctk.CTk):
         # ── Key Bindings ──────────────────────────────────────────────
         sec_keys = CollapsibleSection(scroll, "Key Bindings", expanded=False)
         sec_keys.pack(**sec_opts)
+        self._key_bindings_enabled = self._settings.key_bindings_enabled
         self._key_config_panel = KeyConfigPanel(
             sec_keys.content_frame,
             on_capture_forward=self._start_capture_forward,
             on_capture_backward=self._start_capture_backward,
+            on_enabled_changed=self._on_key_bindings_enabled_changed,
             forward_display=key_to_display(self._key_listener.forward_key),
             backward_display=key_to_display(self._key_listener.backward_key),
+            enabled=self._key_bindings_enabled,
         )
         self._key_config_panel.pack(fill="x")
 

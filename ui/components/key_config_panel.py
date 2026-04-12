@@ -18,24 +18,35 @@ class KeyConfigPanel(ctk.CTkFrame):
         parent,
         on_capture_forward: Callable[[Callable[[str], None]], None],
         on_capture_backward: Callable[[Callable[[str], None]], None],
+        on_enabled_changed: Callable[[bool], None],
         forward_display: str = "right",
         backward_display: str = "left",
+        enabled: bool = False,
     ) -> None:
         super().__init__(parent, corner_radius=8)
         self._on_capture_forward = on_capture_forward
         self._on_capture_backward = on_capture_backward
-        self._build_ui(forward_display, backward_display)
+        self._on_enabled_changed = on_enabled_changed
+        self._build_ui(forward_display, backward_display, enabled)
 
-    def _build_ui(self, forward_display: str, backward_display: str) -> None:
+    def _build_ui(self, forward_display: str, backward_display: str, enabled: bool) -> None:
         ctk.CTkLabel(
             self,
             text="Key Bindings",
             font=ctk.CTkFont(size=14, weight="bold"),
         ).grid(row=0, column=0, columnspan=3, padx=12, pady=(10, 4), sticky="w")
 
+        self._enabled_var = ctk.BooleanVar(value=enabled)
+        ctk.CTkCheckBox(
+            self,
+            text="Enable key bindings",
+            variable=self._enabled_var,
+            command=self._on_enabled_toggle,
+        ).grid(row=1, column=0, columnspan=3, padx=(28, 12), pady=(0, 4), sticky="w")
+
         # Forward row
         ctk.CTkLabel(self, text="Forward:").grid(
-            row=1, column=0, padx=(12, 6), pady=8, sticky="w"
+            row=2, column=0, padx=(12, 6), pady=8, sticky="w"
         )
         self._forward_label = ctk.CTkLabel(
             self,
@@ -44,18 +55,18 @@ class KeyConfigPanel(ctk.CTkFrame):
             fg_color=("gray80", "gray30"),
             corner_radius=4,
         )
-        self._forward_label.grid(row=1, column=1, padx=6, pady=8)
+        self._forward_label.grid(row=2, column=1, padx=6, pady=8)
         self._capture_fwd_btn = ctk.CTkButton(
             self,
             text="Capture",
             width=90,
             command=self._start_capture_forward,
         )
-        self._capture_fwd_btn.grid(row=1, column=2, padx=(6, 12), pady=8)
+        self._capture_fwd_btn.grid(row=2, column=2, padx=(6, 12), pady=8)
 
         # Backward row
         ctk.CTkLabel(self, text="Backward:").grid(
-            row=2, column=0, padx=(12, 6), pady=(0, 10), sticky="w"
+            row=3, column=0, padx=(12, 6), pady=(0, 10), sticky="w"
         )
         self._backward_label = ctk.CTkLabel(
             self,
@@ -64,14 +75,14 @@ class KeyConfigPanel(ctk.CTkFrame):
             fg_color=("gray80", "gray30"),
             corner_radius=4,
         )
-        self._backward_label.grid(row=2, column=1, padx=6, pady=(0, 10))
+        self._backward_label.grid(row=3, column=1, padx=6, pady=(0, 10))
         self._capture_bwd_btn = ctk.CTkButton(
             self,
             text="Capture",
             width=90,
             command=self._start_capture_backward,
         )
-        self._capture_bwd_btn.grid(row=2, column=2, padx=(6, 12), pady=(0, 10))
+        self._capture_bwd_btn.grid(row=3, column=2, padx=(6, 12), pady=(0, 10))
 
         self.columnconfigure(1, weight=1)
 
@@ -98,3 +109,6 @@ class KeyConfigPanel(ctk.CTkFrame):
         """Called on the main thread via app.after(0, ...)."""
         self._backward_label.configure(text=key_display)
         self._capture_bwd_btn.configure(state="normal", text="Capture")
+
+    def _on_enabled_toggle(self) -> None:
+        self._on_enabled_changed(self._enabled_var.get())
