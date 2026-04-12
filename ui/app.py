@@ -19,6 +19,7 @@ from ui.handlers import AppHandlersMixin
 from ui.components.collapsible_section import CollapsibleSection
 from ui.components.connection_panel import ConnectionPanel
 from ui.components.control_panel import ControlPanel
+from ui.components.debug_panel import DebugPanel
 from ui.components.key_config_panel import KeyConfigPanel
 from ui.components.obs_settings_panel import ObsSettingsPanel
 from ui.components.save_panel import SavePanel
@@ -108,13 +109,21 @@ class App(AppHandlersMixin, ctk.CTk):
         # ── Recording ──────────────────────────────────────────────────
         sec_record = CollapsibleSection(scroll, "Recording", expanded=True)
         sec_record.pack(**sec_opts)
+
+        rec_row = ctk.CTkFrame(sec_record.content_frame, fg_color="transparent")
+        rec_row.pack(fill="x")
+        rec_row.columnconfigure(0, weight=1)
+
         self._control_panel = ControlPanel(
-            sec_record.content_frame,
+            rec_row,
             on_record=self.trigger_start,
             on_stop=self.trigger_stop,
             default_title=self._initial_title,
         )
-        self._control_panel.pack(fill="x")
+        self._control_panel.grid(row=0, column=0, sticky="nsew")
+
+        self._debug_panel = DebugPanel(rec_row)
+        self._debug_panel.grid(row=0, column=1, sticky="ns", padx=(4, 0))
 
         # ── Connections ────────────────────────────────────────────────
         sec_conn = CollapsibleSection(scroll, "Connections", expanded=True)

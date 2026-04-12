@@ -69,15 +69,17 @@ class RecordingHandlersMixin:
     def _on_state_change_from_thread(self, state: RecordingState) -> None:
         self.after(0, self._handle_state_change, state)
 
-    def _handle_slide_event(self, _event: SlideEvent) -> None:
+    def _handle_slide_event(self, event: SlideEvent) -> None:
         self._event_count += 1
-        self._control_panel.update_event_count(self._event_count)
+        self._debug_panel.update_event_count(self._event_count)
+        self._debug_panel.update_last_event(event)
 
     def _handle_state_change(self, state: RecordingState) -> None:
         if state == RecordingState.RECORDING:
             self._control_panel.set_recording(True)
             self._key_config_panel.set_enabled(False)
             self._save_panel.enable_save_button(False)
+            self._debug_panel.reset()
             self._start_chronometer()
             self._storage_service.stop_autosave()
             self._storage_service.start_autosave(
