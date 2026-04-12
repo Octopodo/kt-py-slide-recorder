@@ -29,13 +29,16 @@ class ConnectionPanel(ctk.CTkFrame):
         self,
         parent,
         on_obs_auto_control_changed: Callable[[bool], None],
+        on_debug_changed: Callable[[bool], None],
         obs_auto_control: bool = False,
+        debug: bool = False,
     ) -> None:
         super().__init__(parent, corner_radius=8)
         self._on_obs_auto_control_changed = on_obs_auto_control_changed
-        self._build_ui(obs_auto_control)
+        self._on_debug_changed = on_debug_changed
+        self._build_ui(obs_auto_control, debug)
 
-    def _build_ui(self, obs_auto_control: bool) -> None:
+    def _build_ui(self, obs_auto_control: bool, debug: bool) -> None:
         ctk.CTkLabel(
             self,
             text="Connections",
@@ -71,7 +74,15 @@ class ConnectionPanel(ctk.CTkFrame):
             text="Control OBS recording",
             variable=self._obs_control_var,
             command=self._on_obs_control,
-        ).grid(row=4, column=0, columnspan=3, padx=(28, 12), pady=(0, 10), sticky="w")
+        ).grid(row=4, column=0, columnspan=3, padx=(28, 12), pady=(0, 4), sticky="w")
+
+        self._debug_var = ctk.BooleanVar(value=debug)
+        ctk.CTkCheckBox(
+            self,
+            text="Debug",
+            variable=self._debug_var,
+            command=self._on_debug_toggle,
+        ).grid(row=5, column=0, columnspan=3, padx=(28, 12), pady=(0, 10), sticky="w")
 
         self.columnconfigure(2, weight=1)
 
@@ -97,7 +108,7 @@ class ConnectionPanel(ctk.CTkFrame):
             self._obs_dot.configure(text=_DOT_ON, text_color=_COLOR_GREEN)
             self._obs_status.configure(text="Recording")
         elif connected:
-            self._obs_dot.configure(text=_DOT_ON, text_color=_COLOR_YELLOW)
+            self._obs_dot.configure(text=_DOT_ON, text_color=_COLOR_GREEN)
             self._obs_status.configure(text="Connected")
         else:
             self._obs_dot.configure(text=_DOT_OFF, text_color=_COLOR_GREY)
@@ -107,9 +118,16 @@ class ConnectionPanel(ctk.CTkFrame):
     def obs_auto_control(self) -> bool:
         return self._obs_control_var.get()
 
+    @property
+    def debug(self) -> bool:
+        return self._debug_var.get()
+
     # ------------------------------------------------------------------ #
     # Internal callbacks                                                  #
     # ------------------------------------------------------------------ #
 
     def _on_obs_control(self) -> None:
         self._on_obs_auto_control_changed(self._obs_control_var.get())
+
+    def _on_debug_toggle(self) -> None:
+        self._on_debug_changed(self._debug_var.get())

@@ -22,6 +22,7 @@ Design:
 Requires: obsws-python (pip install obsws-python)
 """
 
+import logging
 import threading
 import time
 from typing import Callable, Optional
@@ -31,6 +32,7 @@ try:
 except ImportError:
     obs = None  # obsws-python not installed — adapter degrades gracefully
 
+log = logging.getLogger(__name__)
 
 _RETRY_DELAYS = (2, 4, 8, 16, 30)  # seconds between reconnect attempts
 
@@ -57,6 +59,7 @@ class ObsAdapter:
         # Callbacks — set by App after construction
         self.on_state_changed: Optional[Callable[[bool], None]] = None
         self.on_connection_changed: Optional[Callable[[bool], None]] = None
+        self.on_connection_attempt: Optional[Callable[[bool, str], None]] = None
 
     # ------------------------------------------------------------------ #
     # Public API (ExternalRecorderSink protocol)                          #
@@ -73,9 +76,14 @@ class ObsAdapter:
         Retries automatically until stop() is called.
         """
         if obs is None:
-            return  # obsws-python not available
-        if self._connect_thread and self._connect_thread.is_alive():
+            log.warning("obsws-python not installed — OBS features disabled")
+            if self.on_connection_attempt:
+                self.on_connection_attempt(
+                    False, "obsws-python not installed.\nRun: pip install obsws-python"
+                )
             return
+        if self._connect_thread and self._connect_thread.is_alive():
+            self._connect_thread.join(timeout=2)
         self._stop_event.clear()
         self._connect_thread = threading.Thread(
             target=self._connect_loop, daemon=True, name="ObsAdapter-connect"
@@ -123,13 +131,27 @@ class ObsAdapter:
 
     def _connect_loop(self) -> None:
         delay_idx = 0
+        first_attempt = True
         while not self._stop_event.is_set():
             try:
+                log.info("OBS: connecting to %s:%s ...", self._host, self._port)
                 self._try_connect()
-                # Connection established — wait until it drops
-                self._stop_event.wait()  # blocks until disconnect() is called
+                log.info("OBS: connected successfully")
+                if first_attempt and self.on_connection_attempt:
+                    self.on_connection_attempt(
+                        True, f"Connected to {self._host}:{self._port}"
+                    )
+                self._stop_event.wait()
                 return
-            except Exception:
+            except Exception as exc:
+                msg = str(exc) or type(exc).__name__
+                log.warning("OBS: connection failed — %s", msg)
+                if first_attempt and self.on_connection_attempt:
+                    self.on_connection_attempt(
+                        False,
+                        f"Connection to {self._host}:{self._port} failed:\n{msg}",
+                    )
+                first_attempt = False
                 delay = _RETRY_DELAYS[min(delay_idx, len(_RETRY_DELAYS) - 1)]
                 delay_idx += 1
                 self._stop_event.wait(timeout=delay)

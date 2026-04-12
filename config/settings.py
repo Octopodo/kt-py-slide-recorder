@@ -163,6 +163,14 @@ class Settings:
         self._set("last_session_title", v)
 
     @property
+    def debug(self) -> bool:
+        return bool(self._get("debug", False))
+
+    @debug.setter
+    def debug(self, v: bool) -> None:
+        self._set("debug", v)
+
+    @property
     def window_geometry(self) -> str:
         return self._get("window_geometry", "")
 

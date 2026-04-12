@@ -27,3 +27,4 @@ desktop.ini
 
 #test results
 tests/results/
+config.json

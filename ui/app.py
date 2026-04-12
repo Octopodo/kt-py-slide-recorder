@@ -94,6 +94,7 @@ class App(AppHandlersMixin, ctk.CTk):
         )
         self._obs_adapter.on_state_changed = self._on_obs_state_changed
         self._obs_adapter.on_connection_changed = self._on_obs_connection_changed
+        self._obs_adapter.on_connection_attempt = self._on_obs_connection_attempt
         self._obs_adapter.connect()
 
     # ------------------------------------------------------------------ #
@@ -131,7 +132,9 @@ class App(AppHandlersMixin, ctk.CTk):
         self._connection_panel = ConnectionPanel(
             sec_conn.content_frame,
             on_obs_auto_control_changed=self._on_obs_auto_control_changed,
+            on_debug_changed=self._on_debug_changed,
             obs_auto_control=self._settings.obs_auto_control,
+            debug=self._settings.debug,
         )
         self._connection_panel.pack(fill="x")
 
