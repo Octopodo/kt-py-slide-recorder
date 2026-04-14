@@ -26,6 +26,8 @@ from config.defaults import (
     OBS_HOST,
     OBS_PASSWORD,
     OBS_PORT,
+    RECORDING_OVERLAY_GEOMETRY,
+    RECORDING_OVERLAY_TOPMOST,
 )
 
 _CONFIG_FILENAME = "config.json"
@@ -185,3 +187,19 @@ class Settings:
     @window_geometry.setter
     def window_geometry(self, v: str) -> None:
         self._set("window_geometry", v)
+
+    @property
+    def recording_overlay_topmost(self) -> bool:
+        return bool(self._get("recording_overlay_topmost", RECORDING_OVERLAY_TOPMOST))
+
+    @recording_overlay_topmost.setter
+    def recording_overlay_topmost(self, v: bool) -> None:
+        self._set("recording_overlay_topmost", v)
+
+    @property
+    def recording_overlay_geometry(self) -> str:
+        return self._get("recording_overlay_geometry", RECORDING_OVERLAY_GEOMETRY)
+
+    @recording_overlay_geometry.setter
+    def recording_overlay_geometry(self, v: str) -> None:
+        self._set("recording_overlay_geometry", v)

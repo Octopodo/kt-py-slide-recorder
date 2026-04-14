@@ -47,6 +47,7 @@ class App(AppHandlersMixin, ctk.CTk):
         self._event_count: int = 0
         self._timer_job = None
         self._obs_recording: bool = False
+        self._floating_record_panel = None
 
         self._initial_title = self._settings.last_session_title or DEFAULT_SESSION_TITLE
         self._initial_save_path = self._settings.last_save_path or os.path.join(
@@ -119,6 +120,8 @@ class App(AppHandlersMixin, ctk.CTk):
             rec_row,
             on_record=self.trigger_start,
             on_stop=self.trigger_stop,
+            on_overlay_topmost_changed=self._on_recording_overlay_topmost_changed,
+            overlay_topmost=self._settings.recording_overlay_topmost,
             default_title=self._initial_title,
         )
         self._control_panel.grid(row=0, column=0, sticky="nsew")

@@ -1,0 +1,104 @@
+{
+  "title": "test",
+  "session_start_iso": "2026-04-14T13:40:20.677487+02:00",
+  "duration_s": 252.909,
+  "total_events": 16,
+  "events": [
+    {
+      "time_hms": "13:40:20",
+      "time_ms": 1776166820677,
+      "slide_index": 0,
+      "event_type": "initial"
+    },
+    {
+      "time_hms": "13:40:23",
+      "time_ms": 1776166823350,
+      "slide_index": 1,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:40:24",
+      "time_ms": 1776166824352,
+      "slide_index": 2,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:40:25",
+      "time_ms": 1776166825104,
+      "slide_index": 3,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:40:25",
+      "time_ms": 1776166825605,
+      "slide_index": 4,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:13",
+      "time_ms": 1776167053293,
+      "slide_index": 5,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:17",
+      "time_ms": 1776167057806,
+      "slide_index": 6,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:20",
+      "time_ms": 1776167060567,
+      "slide_index": 7,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:21",
+      "time_ms": 1776167061821,
+      "slide_index": 0,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:24",
+      "time_ms": 1776167064918,
+      "slide_index": 1,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:25",
+      "time_ms": 1776167065921,
+      "slide_index": 2,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:26",
+      "time_ms": 1776167066421,
+      "slide_index": 3,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:26",
+      "time_ms": 1776167066672,
+      "slide_index": 4,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:27",
+      "time_ms": 1776167067174,
+      "slide_index": 5,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:29",
+      "time_ms": 1776167069184,
+      "slide_index": 0,
+      "event_type": "slide_changed"
+    },
+    {
+      "time_hms": "13:44:33",
+      "time_ms": 1776167073586,
+      "slide_index": 0,
+      "event_type": "record_end"
+    }
+  ]
+}

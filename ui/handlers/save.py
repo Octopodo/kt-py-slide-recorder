@@ -89,6 +89,7 @@ class SaveHandlersMixin:
         self._key_listener.stop()
         self._impress_bridge.stop()
         self._obs_adapter.disconnect()
+        self._hide_floating_record_panel()
         self.destroy()
 
     def _save_snapshot(self, snapshot) -> bool:

@@ -5,6 +5,7 @@ from tkinter import messagebox
 
 from models.slide_event import SlideEvent
 from services.recording_service import RecordingState
+from ui.components.floating_record_panel import FloatingRecordPanel
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +74,10 @@ class RecordingHandlersMixin:
         self._event_count += 1
         self._debug_panel.update_event_count(self._event_count)
         self._debug_panel.update_last_event(event)
+        panel = self._floating_record_panel
+        if panel is not None and panel.winfo_exists():
+            panel.update_event_count(self._event_count)
+            panel.update_last_event(event)
 
     def _handle_state_change(self, state: RecordingState) -> None:
         if state == RecordingState.RECORDING:
@@ -80,6 +85,7 @@ class RecordingHandlersMixin:
             self._key_config_panel.set_enabled(False)
             self._save_panel.enable_save_button(False)
             self._debug_panel.reset()
+            self._show_floating_record_panel()
             self._start_chronometer()
             self._storage_service.stop_autosave()
             self._storage_service.start_autosave(
@@ -91,11 +97,13 @@ class RecordingHandlersMixin:
             self._key_config_panel.set_enabled(True)
             self._save_panel.enable_save_button(True)
             self._stop_chronometer()
+            self._hide_floating_record_panel()
         elif state == RecordingState.IDLE:
             self._control_panel.set_recording(False)
             self._key_config_panel.set_enabled(True)
             self._save_panel.enable_save_button(False)
             self._stop_chronometer()
+            self._hide_floating_record_panel()
 
     # ------------------------------------------------------------------ #
     # Chronometer                                                          #
@@ -107,9 +115,50 @@ class RecordingHandlersMixin:
     def _tick_chronometer(self) -> None:
         elapsed = self._recording_service.get_elapsed_s()
         self._control_panel.update_elapsed(elapsed)
+        panel = self._floating_record_panel
+        if panel is not None and panel.winfo_exists():
+            panel.update_elapsed(elapsed)
         self._timer_job = self.after(100, self._tick_chronometer)
 
     def _stop_chronometer(self) -> None:
         if self._timer_job is not None:
             self.after_cancel(self._timer_job)
             self._timer_job = None
+
+    # ------------------------------------------------------------------ #
+    # Floating recording overlay                                           #
+    # ------------------------------------------------------------------ #
+
+    def _on_recording_overlay_topmost_changed(self, value: bool) -> None:
+        self._settings.recording_overlay_topmost = value
+        panel = self._floating_record_panel
+        if panel is not None and panel.winfo_exists():
+            panel.set_topmost(value)
+
+    def _show_floating_record_panel(self) -> None:
+        panel = self._floating_record_panel
+        if panel is not None and panel.winfo_exists():
+            panel.set_topmost(self._settings.recording_overlay_topmost)
+            panel.deiconify()
+            panel.lift()
+            return
+
+        panel = FloatingRecordPanel(
+            parent=self,
+            on_stop=self.trigger_stop,
+            topmost=self._settings.recording_overlay_topmost,
+            start_geometry=self._settings.recording_overlay_geometry,
+        )
+        panel.update_event_count(self._event_count)
+        self._floating_record_panel = panel
+
+    def _hide_floating_record_panel(self) -> None:
+        panel = self._floating_record_panel
+        if panel is None:
+            return
+        try:
+            if panel.winfo_exists():
+                self._settings.recording_overlay_geometry = panel.current_geometry()
+                panel.destroy()
+        finally:
+            self._floating_record_panel = None

@@ -14,11 +14,15 @@ class ControlPanel(ctk.CTkFrame):
         parent,
         on_record: callable,
         on_stop: callable,
+        on_overlay_topmost_changed: callable,
+        overlay_topmost: bool,
         default_title: str = "",
     ) -> None:
         super().__init__(parent, corner_radius=8)
         self._on_record = on_record
         self._on_stop = on_stop
+        self._on_overlay_topmost_changed = on_overlay_topmost_changed
+        self._overlay_topmost_var = ctk.BooleanVar(value=overlay_topmost)
         self._is_recording = False
         self._default_title = default_title
         self._build_ui()
@@ -56,6 +60,13 @@ class ControlPanel(ctk.CTkFrame):
             font=ctk.CTkFont(size=22, family="Courier New"),
         )
         self._elapsed_label.grid(row=2, column=1, padx=(4, 12), pady=(4, 10), sticky="w")
+
+        ctk.CTkCheckBox(
+            self,
+            text="Overlay always on top",
+            variable=self._overlay_topmost_var,
+            command=self._on_overlay_topmost_toggle,
+        ).grid(row=3, column=0, columnspan=2, padx=12, pady=(0, 6), sticky="w")
 
         self.columnconfigure(1, weight=1)
 
@@ -97,3 +108,6 @@ class ControlPanel(ctk.CTkFrame):
 
     def reset_display(self) -> None:
         self.update_elapsed(0.0)
+
+    def _on_overlay_topmost_toggle(self) -> None:
+        self._on_overlay_topmost_changed(self._overlay_topmost_var.get())

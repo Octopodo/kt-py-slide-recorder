@@ -22,3 +22,5 @@ OBS_PASSWORD: str = ""
 # Feature flags (opt-in, persisted via settings.py)
 OBS_AUTO_CONTROL: bool = False  # start/stop OBS when session starts/stops
 IMPRESS_AUTO_SYNC: bool = False  # auto start/stop session on slideshow F5/Esc
+RECORDING_OVERLAY_TOPMOST: bool = True
+RECORDING_OVERLAY_GEOMETRY: str = ""
