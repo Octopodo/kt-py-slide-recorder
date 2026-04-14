@@ -8,20 +8,21 @@ class ObsHandlersMixin:
 
     def _on_obs_state_changed(self, active: bool) -> None:
         self._obs_recording = active
-        self.after(
-            0,
-            self._connection_panel.update_obs_status,
-            self._obs_adapter.is_connected,
-            active,
-        )
+        self.after(0, self._handle_obs_status_update, self._obs_adapter.is_connected, active)
 
     def _on_obs_connection_changed(self, connected: bool) -> None:
         self.after(
             0,
-            self._connection_panel.update_obs_status,
+            self._handle_obs_status_update,
             connected,
             self._obs_recording if connected else False,
         )
+
+    def _handle_obs_status_update(self, connected: bool, recording: bool) -> None:
+        self._connection_panel.update_obs_status(connected, recording)
+        panel = self._floating_record_panel
+        if panel is not None and panel.winfo_exists():
+            panel.update_obs_status(connected, recording)
 
     def _on_obs_connection_attempt(self, success: bool, message: str) -> None:
         self.after(0, self._show_obs_connection_result, success, message)

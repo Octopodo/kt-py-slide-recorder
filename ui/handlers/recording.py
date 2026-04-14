@@ -150,6 +150,8 @@ class RecordingHandlersMixin:
             start_geometry=self._settings.recording_overlay_geometry,
         )
         panel.update_event_count(self._event_count)
+        panel.update_impress_status(self._impress_connected, self._impress_in_presentation)
+        panel.update_obs_status(self._obs_adapter.is_connected, self._obs_recording)
         self._floating_record_panel = panel
 
     def _hide_floating_record_panel(self) -> None:

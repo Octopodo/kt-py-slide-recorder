@@ -37,16 +37,33 @@ class ImpressHandlersMixin:
 
     def _handle_slideshow_started(self) -> None:
         log.info("Impress: slideshow started")
+        self._impress_connected = True
+        self._impress_in_presentation = True
         self._connection_panel.update_impress_status(True, True)
+        self._update_floating_impress_status()
 
     def _handle_slideshow_ended(self) -> None:
         log.info("Impress: slideshow ended")
+        self._impress_connected = True
+        self._impress_in_presentation = False
         self._connection_panel.update_impress_status(True, False)
+        self._update_floating_impress_status()
 
     def _handle_impress_connected(self) -> None:
         log.info("Impress: macro connected")
+        self._impress_connected = True
+        self._impress_in_presentation = False
         self._connection_panel.update_impress_status(True, False)
+        self._update_floating_impress_status()
 
     def _handle_impress_disconnected(self) -> None:
         log.info("Impress: macro disconnected")
+        self._impress_connected = False
+        self._impress_in_presentation = False
         self._connection_panel.update_impress_status(False, False)
+        self._update_floating_impress_status()
+
+    def _update_floating_impress_status(self) -> None:
+        panel = self._floating_record_panel
+        if panel is not None and panel.winfo_exists():
+            panel.update_impress_status(self._impress_connected, self._impress_in_presentation)

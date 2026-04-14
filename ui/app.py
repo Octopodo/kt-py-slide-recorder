@@ -47,6 +47,8 @@ class App(AppHandlersMixin, ctk.CTk):
         self._event_count: int = 0
         self._timer_job = None
         self._obs_recording: bool = False
+        self._impress_connected: bool = False
+        self._impress_in_presentation: bool = False
         self._floating_record_panel = None
 
         self._initial_title = self._settings.last_session_title or DEFAULT_SESSION_TITLE
